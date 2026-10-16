@@ -1,0 +1,16 @@
+{
+  "name": "Photos Diag",
+  "short_name": "Photos Diag",
+  "description": "Photos de diagnostic envoyées directement dans Dropbox",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f2f5f5",
+  "theme_color": "#014547",
+  "lang": "fr",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

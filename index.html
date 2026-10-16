@@ -1,0 +1,851 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Photos Diag</title>
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#014547">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Photos Diag">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="manifest" href="manifest.json">
+<style>
+  /* Couleurs ADI : vert canard + orange. Toujours en clair : lisible en plein soleil. */
+  :root {
+    --teal: #014547;
+    --teal-dark: #0b2a2c;
+    --teal-soft: #e6eeee;
+    --orange: #fe8a5b;
+    --orange-press: #f0743f;
+    --bg: #f2f5f5;
+    --card: #ffffff;
+    --fg: #0b2a2c;
+    --muted: #4a5d5e;
+    --ok: #0f7a3d;
+    --ok-soft: #e3f3e9;
+    --warn: #9a4a10;
+    --warn-soft: #fff0e6;
+    --err: #b3261e;
+    --err-soft: #fdeceb;
+    --radius: 20px;
+    --shadow: 0 1px 2px rgba(11, 42, 44, .06), 0 6px 20px rgba(11, 42, 44, .08);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--fg); }
+  body {
+    font: 17px/1.45 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -webkit-tap-highlight-color: transparent;
+    padding-bottom: max(28px, env(safe-area-inset-bottom));
+  }
+  .wrap { max-width: 560px; margin: 0 auto; padding: 0 16px; }
+  .hidden { display: none !important; }
+  h2 { font-size: 20px; margin: 0 0 6px; letter-spacing: -.2px; }
+  p { margin: 6px 0; }
+  svg { display: block; }
+
+  /* ---- En-tête ---- */
+  .top {
+    background: var(--teal); color: #fff;
+    padding: max(14px, env(safe-area-inset-top)) 0 22px;
+    border-radius: 0 0 28px 28px;
+  }
+  .top-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 19px; letter-spacing: -.2px; }
+  .brand-mark {
+    width: 36px; height: 36px; border-radius: 10px; background: var(--orange); color: var(--teal-dark);
+    display: grid; place-items: center; font-size: 13px; font-weight: 900; letter-spacing: .5px;
+  }
+  .brand small { display: block; font-weight: 600; font-size: 13px; opacity: .75; letter-spacing: 0; }
+  .icon-btn {
+    width: 44px; height: 44px; border-radius: 22px; border: 0; padding: 0; cursor: pointer;
+    background: rgba(255, 255, 255, .14); color: #fff; display: grid; place-items: center;
+  }
+  .icon-btn:active { background: rgba(255, 255, 255, .26); }
+
+  .status {
+    margin-top: 16px; display: flex; align-items: flex-start; gap: 10px;
+    background: rgba(255, 255, 255, .12); border-radius: 14px; padding: 12px 14px;
+    font-weight: 700; font-size: 16px;
+  }
+  .status .dot { flex: none; width: 12px; height: 12px; border-radius: 6px; margin-top: 5px; background: #cfdede; }
+  .status.ok .dot { background: #4ade80; }
+  .status.warn .dot { background: var(--orange); }
+  .status.err { background: #fff; color: var(--err); }
+  .status.err .dot { background: var(--err); }
+  .status.busy .dot { background: transparent; border: 2px solid rgba(255,255,255,.4); border-top-color: #fff; animation: spin .8s linear infinite; }
+
+  /* ---- Cartes ---- */
+  .card { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); padding: 18px; margin-top: 16px; }
+  .card.lift { margin-top: -10px; position: relative; }
+
+  .field-label { font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: .8px; color: var(--muted); }
+  #dossier {
+    width: 100%; margin-top: 6px; font: inherit; font-size: 36px; font-weight: 800; letter-spacing: 1px;
+    color: var(--teal); background: var(--bg); border: 2px solid transparent; border-radius: 14px;
+    padding: 10px 14px; min-height: 64px;
+  }
+  #dossier::placeholder { color: #9fb1b1; font-weight: 700; }
+  #dossier:focus { outline: none; border-color: var(--orange); background: #fff; }
+  .hint { font-size: 15px; color: var(--muted); margin: 8px 2px 0; min-height: 1.45em; }
+  .hint.ok { color: var(--ok); font-weight: 600; }
+  .hint.err { color: var(--err); font-weight: 700; }
+
+  /* ---- Boutons ---- */
+  .btn {
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    width: 100%; min-height: 56px; margin: 0; padding: 0 18px;
+    font: inherit; font-size: 17px; font-weight: 800; letter-spacing: .1px;
+    border-radius: 999px; border: 2px solid var(--teal); background: #fff; color: var(--teal); cursor: pointer;
+    transition: transform .08s ease, background-color .15s ease;
+  }
+  .btn:active { transform: scale(.98); }
+  .btn-primary { min-height: 70px; font-size: 20px; background: var(--orange); border-color: var(--orange); color: var(--teal-dark); margin-top: 14px; box-shadow: 0 6px 16px rgba(254, 138, 91, .35); }
+  .btn-primary:active { background: var(--orange-press); border-color: var(--orange-press); }
+  .btn-teal { background: var(--teal); color: #fff; }
+  .btn-ghost { border-color: transparent; background: var(--teal-soft); }
+  .btn-second { margin-top: 10px; font-size: 16px; }
+  .busy { color: var(--muted); font-size: 15px; margin: 10px 2px 0; text-align: center; }
+  .busy:empty { display: none; }
+
+  /* ---- Photos ---- */
+  .section-title { display: flex; justify-content: space-between; align-items: baseline; margin: 26px 4px 0; }
+  .section-title h2 { margin: 0; }
+  .section-title span { color: var(--muted); font-size: 15px; font-weight: 600; }
+  .dossier-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .dossier-num { font-size: 24px; font-weight: 800; letter-spacing: .5px; color: var(--teal); }
+  .dossier-num small { display: block; font-size: 12px; font-weight: 800; letter-spacing: .8px; text-transform: uppercase; color: var(--muted); }
+  .chip { font-size: 14px; font-weight: 800; padding: 6px 12px; border-radius: 999px; background: var(--warn-soft); color: var(--warn); white-space: nowrap; }
+  .chip.done { background: var(--ok-soft); color: var(--ok); }
+  .progress { height: 6px; border-radius: 3px; background: var(--teal-soft); margin-top: 12px; overflow: hidden; }
+  .progress i { display: block; height: 100%; background: var(--orange); border-radius: 3px; transition: width .3s ease; }
+  .progress.done i { background: var(--ok); }
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 14px; }
+  .tile { position: relative; aspect-ratio: 1; border-radius: 14px; overflow: hidden; background: var(--teal-soft); }
+  .tile img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .tile.pending img, .tile.error img { opacity: .82; }
+  .badge {
+    position: absolute; right: 6px; bottom: 6px; width: 30px; height: 30px; border-radius: 15px;
+    display: grid; place-items: center; color: #fff; background: var(--teal);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, .3); border: 2px solid #fff;
+  }
+  .badge.sent { background: var(--ok); }
+  .badge.error { background: var(--err); }
+  .badge.pending { background: #fff; color: var(--teal); border-color: var(--teal); }
+  .badge.sending::after { content: ""; width: 14px; height: 14px; border-radius: 50%; border: 2px solid rgba(255,255,255,.4); border-top-color: #fff; animation: spin .8s linear infinite; }
+  .remove {
+    position: absolute; top: 6px; right: 6px; width: 34px; height: 34px; border-radius: 17px; border: 0; padding: 0;
+    background: rgba(11, 42, 44, .72); color: #fff; display: grid; place-items: center; cursor: pointer;
+  }
+  .remove::before { content: ""; position: absolute; inset: -6px; } /* zone de toucher plus large */
+  .empty { text-align: center; color: var(--muted); padding: 26px 12px 8px; }
+  .empty svg { margin: 0 auto 10px; color: #a9bcbc; }
+  .footer { margin-top: 22px; display: grid; gap: 10px; }
+
+  /* ---- Configuration ---- */
+  textarea {
+    width: 100%; min-height: 110px; margin-top: 10px; padding: 12px 14px;
+    font: 15px/1.4 ui-monospace, Menlo, monospace; color: var(--fg);
+    background: var(--bg); border: 2px solid transparent; border-radius: 14px;
+  }
+  textarea:focus { outline: none; border-color: var(--orange); background: #fff; }
+  .setup-actions { display: grid; gap: 10px; margin-top: 14px; }
+  .muted { color: var(--muted); font-size: 15px; }
+  .field-label + .muted { margin-top: 2px; }
+  #setup h2 + .muted { margin-bottom: 14px; }
+  .or { display: flex; align-items: center; gap: 12px; color: var(--muted); font-size: 14px; font-weight: 700; margin: 6px 0 16px; }
+  .or::before, .or::after { content: ""; flex: 1; height: 1px; background: #d5dfdf; }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) { * { animation-duration: 2s !important; transition: none !important; } }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <div class="top-row">
+      <div class="brand">
+        <div class="brand-mark">ADI</div>
+        <div>Photos Diag<small>Envoi direct vers Dropbox</small></div>
+      </div>
+      <button id="settingsBtn" class="icon-btn hidden" type="button" aria-label="Réglages Dropbox">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </button>
+    </div>
+    <div id="status" class="status hidden" role="status" aria-live="polite"><span class="dot"></span><span id="statusText">Chargement…</span></div>
+  </div>
+</header>
+
+<main class="wrap">
+
+<!-- ===== Écran de configuration ===== -->
+<section id="setup" class="hidden">
+  <div class="card lift">
+    <h2>Configuration</h2>
+    <p class="muted">À faire une seule fois sur ce téléphone.</p>
+
+    <div id="oauthBlock">
+      <div class="setup-actions">
+        <button id="oauthBtn" class="btn btn-teal" type="button">Se connecter à Dropbox</button>
+      </div>
+      <p class="hint" id="oauthHint"></p>
+      <div class="or"><span>ou</span></div>
+    </div>
+
+    <label class="field-label" for="tokenInput">Coller un token</label>
+    <p class="muted">Token de test (commence par <b>sl.</b>, valable environ 4 h) ou token de connexion fourni par l'administrateur.</p>
+    <textarea id="tokenInput" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="Coller le token ici"></textarea>
+    <div class="setup-actions">
+      <button id="tokenBtn" class="btn btn-teal" type="button">Enregistrer</button>
+      <button id="setupCancel" class="btn hidden" type="button">Retour</button>
+    </div>
+    <p class="hint" id="tokenHint"></p>
+  </div>
+</section>
+
+<!-- ===== Écran principal ===== -->
+<section id="main" class="hidden">
+  <div class="card lift">
+    <label class="field-label" for="dossier">Dossier n°</label>
+    <input id="dossier" type="text" inputmode="numeric" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" enterkeyhint="done" placeholder="22580">
+    <p class="hint" id="dossierHint"></p>
+
+    <button id="cameraBtn" class="btn btn-primary" type="button">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+      Prendre une photo
+    </button>
+    <button id="libraryBtn" class="btn btn-ghost btn-second" type="button">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+      Choisir dans la photothèque
+    </button>
+    <p class="busy" id="busy"></p>
+  </div>
+
+  <input id="cameraInput" type="file" accept="image/*" capture="environment" class="hidden">
+  <input id="libraryInput" type="file" accept="image/*" multiple class="hidden">
+
+  <div class="section-title"><h2>Photos du jour</h2><span id="todayCount"></span></div>
+  <div id="list"></div>
+
+  <div class="footer">
+    <button id="retryBtn" class="btn hidden" type="button">Réessayer l'envoi maintenant</button>
+  </div>
+</section>
+
+</main>
+
+<script src="config.js"></script>
+<script>
+(() => {
+  "use strict";
+
+  const CFG = Object.assign({
+    DROPBOX_APP_KEY: "", BASE_PATH: "", MAX_SIDE: 2560, JPEG_QUALITY: 0.8,
+    DOSSIER_PATTERN: "^[A-Za-z0-9_-]{1,30}$",
+  }, window.APP_CONFIG || {});
+  const DOSSIER_RE = new RegExp(CFG.DOSSIER_PATTERN);
+  const $ = (id) => document.getElementById(id);
+
+  // ---------- Stockage local (IndexedDB) ----------
+  // Les photos y restent jusqu'à confirmation de Dropbox : rien n'est perdu
+  // si Safari recharge la page, si le téléphone redémarre ou s'il n'y a pas de réseau.
+  let dbPromise;
+  function db() {
+    if (!dbPromise) {
+      dbPromise = new Promise((resolve, reject) => {
+        const req = indexedDB.open("photos-diag", 1);
+        req.onupgradeneeded = () => {
+          const d = req.result;
+          d.createObjectStore("photos", { keyPath: "id", autoIncrement: true });
+          d.createObjectStore("kv");
+        };
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+      });
+    }
+    return dbPromise;
+  }
+  async function tx(store, mode, fn) {
+    const d = await db();
+    return new Promise((resolve, reject) => {
+      const t = d.transaction(store, mode);
+      const s = t.objectStore(store);
+      let result;
+      Promise.resolve(fn(s)).then((r) => { result = r; });
+      t.oncomplete = () => resolve(result);
+      t.onerror = () => reject(t.error);
+      t.onabort = () => reject(t.error);
+    });
+  }
+  const req2p = (r) => new Promise((res, rej) => { r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
+  const kvGet = (k) => tx("kv", "readonly", (s) => req2p(s.get(k)));
+  const kvSet = (k, v) => tx("kv", "readwrite", (s) => { s.put(v, k); });
+  const kvDel = (k) => tx("kv", "readwrite", (s) => { s.delete(k); });
+  const photosAll = () => tx("photos", "readonly", (s) => req2p(s.getAll()));
+  const photoPut = (p) => tx("photos", "readwrite", (s) => req2p(s.put(p)));
+  const photoDel = (id) => tx("photos", "readwrite", (s) => { s.delete(id); });
+
+  function lsGet(k) { try { return localStorage.getItem(k); } catch { return null; } }
+  function lsSet(k, v) { try { localStorage.setItem(k, v); } catch { /* stockage indisponible */ } }
+
+  // ---------- Authentification Dropbox ----------
+  // auth = { mode: "token", token } (token de test court)
+  //      | { mode: "refresh", refreshToken } (usage normal, PKCE sans client_secret)
+  let auth = null;
+  let accessToken = null;
+  let accessExpiresAt = 0;
+
+  class AuthError extends Error {}
+
+  async function getAccessToken(force) {
+    if (!auth) throw new AuthError("Non configuré");
+    if (auth.mode === "token") return auth.token;
+    if (!force && accessToken && Date.now() < accessExpiresAt - 60000) return accessToken;
+    if (!CFG.DROPBOX_APP_KEY) throw new AuthError("DROPBOX_APP_KEY manquant dans config.js");
+    let res;
+    try {
+      res = await fetch("https://api.dropboxapi.com/oauth2/token", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          grant_type: "refresh_token",
+          refresh_token: auth.refreshToken,
+          client_id: CFG.DROPBOX_APP_KEY,
+        }),
+      });
+    } catch {
+      throw new NetworkError("Pas de réseau");
+    }
+    if (res.status === 400 || res.status === 401) throw new AuthError("Connexion Dropbox révoquée ou invalide");
+    if (!res.ok) throw new Error("Renouvellement du token impossible (" + res.status + ")");
+    const data = await res.json();
+    accessToken = data.access_token;
+    accessExpiresAt = Date.now() + (data.expires_in || 14400) * 1000;
+    return accessToken;
+  }
+
+  // OAuth PKCE : redirection vers Dropbox puis retour ici avec ?code=
+  const b64url = (buf) => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  const redirectUri = () => location.origin + location.pathname;
+
+  async function startOAuth() {
+    const verifier = b64url(crypto.getRandomValues(new Uint8Array(48)));
+    const challenge = b64url(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(verifier)));
+    await kvSet("pkce_verifier", verifier);
+    const url = new URL("https://www.dropbox.com/oauth2/authorize");
+    url.search = new URLSearchParams({
+      client_id: CFG.DROPBOX_APP_KEY,
+      response_type: "code",
+      code_challenge: challenge,
+      code_challenge_method: "S256",
+      token_access_type: "offline",
+      redirect_uri: redirectUri(),
+    });
+    location.href = url.toString();
+  }
+
+  async function finishOAuthIfNeeded() {
+    const params = new URLSearchParams(location.search);
+    const code = params.get("code");
+    const err = params.get("error");
+    if (!code && !err) return;
+    history.replaceState(null, "", location.pathname);
+    if (err) { $("oauthHint").textContent = "Connexion annulée."; return; }
+    const verifier = await kvGet("pkce_verifier");
+    if (!verifier) { $("oauthHint").textContent = "Connexion interrompue, recommencez."; return; }
+    const res = await fetch("https://api.dropboxapi.com/oauth2/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        code, grant_type: "authorization_code", code_verifier: verifier,
+        client_id: CFG.DROPBOX_APP_KEY, redirect_uri: redirectUri(),
+      }),
+    });
+    await kvDel("pkce_verifier");
+    if (!res.ok) { $("oauthHint").textContent = "Échec de la connexion (" + res.status + "), recommencez."; return; }
+    const data = await res.json();
+    if (!data.refresh_token) { $("oauthHint").textContent = "Dropbox n'a pas renvoyé de token de connexion."; return; }
+    auth = { mode: "refresh", refreshToken: data.refresh_token };
+    accessToken = data.access_token;
+    accessExpiresAt = Date.now() + (data.expires_in || 14400) * 1000;
+    await kvSet("auth", auth);
+  }
+
+  async function saveTokenFromInput() {
+    const v = $("tokenInput").value.trim();
+    if (!v) { $("tokenHint").textContent = "Collez un token."; return; }
+    // Les tokens d'accès courts de Dropbox commencent par « sl. » ; sinon c'est un token de connexion.
+    if (v.startsWith("sl.")) {
+      auth = { mode: "token", token: v };
+    } else {
+      if (!CFG.DROPBOX_APP_KEY) { $("tokenHint").textContent = "Il faut renseigner DROPBOX_APP_KEY dans config.js pour ce type de token."; return; }
+      auth = { mode: "refresh", refreshToken: v };
+    }
+    accessToken = null; accessExpiresAt = 0;
+    await kvSet("auth", auth);
+    authProblem = null;
+    $("tokenInput").value = "";
+    $("tokenHint").textContent = "";
+    showMain();
+  }
+
+  // ---------- Photos ----------
+  function pad(n, w = 2) { return String(n).padStart(w, "0"); }
+  function stamp(d) {
+    return d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate()) + "-" + pad(d.getHours()) + pad(d.getMinutes()) + pad(d.getSeconds());
+  }
+
+  function loadImage(file) {
+    return new Promise((resolve, reject) => {
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => { URL.revokeObjectURL(url); resolve(img); };
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("Image illisible")); };
+      img.src = url;
+    });
+  }
+
+  // Safari applique l'orientation EXIF quand on dessine une <img> : la photo reste à l'endroit.
+  function drawCanvas(img, maxSide) {
+    const w = img.naturalWidth, h = img.naturalHeight;
+    const scale = Math.min(1, maxSide / Math.max(w, h));
+    const c = document.createElement("canvas");
+    c.width = Math.round(w * scale);
+    c.height = Math.round(h * scale);
+    c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+    return c;
+  }
+
+  // Photo complète, stockée en ArrayBuffer : Safari perd parfois les Blob
+  // enregistrés dans IndexedDB quand l'enregistrement est mis à jour.
+  function compressPhoto(img) {
+    const c = drawCanvas(img, CFG.MAX_SIDE);
+    return new Promise((resolve, reject) => {
+      c.toBlob((b) => {
+        c.width = c.height = 0; // libère la mémoire tout de suite (important sur iPhone)
+        b ? resolve(b.arrayBuffer()) : reject(new Error("Compression impossible"));
+      }, "image/jpeg", CFG.JPEG_QUALITY);
+    });
+  }
+
+  // Miniature en texte (data URL) : toujours affichable, même après mise à jour de l'enregistrement.
+  function makeThumb(img) {
+    const c = drawCanvas(img, 360);
+    const url = c.toDataURL("image/jpeg", 0.7);
+    c.width = c.height = 0;
+    return url;
+  }
+
+  async function nextSeq(dossier) {
+    const key = "seq:" + dossier;
+    const n = ((await kvGet(key)) || 0) + 1;
+    await kvSet(key, n);
+    return n;
+  }
+
+  async function addFiles(files, dossier) {
+    const list = Array.from(files || []);
+    for (let i = 0; i < list.length; i++) {
+      $("busy").textContent = list.length > 1 ? `Préparation ${i + 1}/${list.length}…` : "Préparation…";
+      try {
+        const img = await loadImage(list[i]);
+        const data = await compressPhoto(img);
+        const thumb = makeThumb(img);
+        const taken = new Date();
+        const seq = await nextSeq(dossier);
+        await photoPut({
+          dossier,
+          name: `${dossier}-${stamp(taken)}-${pad(seq, 3)}.jpg`,
+          data, thumb, status: "pending", attempts: 0, nextTryAt: 0,
+          createdAt: Date.now(), error: "",
+        });
+        await render();
+      } catch (e) {
+        alert("Impossible de lire une photo : " + e.message);
+      }
+    }
+    $("busy").textContent = "";
+    processQueue();
+  }
+
+  // ---------- Envoi vers Dropbox ----------
+  // L'en-tête Dropbox-API-Arg doit être en ASCII pur.
+  const asciiJson = (o) => JSON.stringify(o).replace(/[\u007f-￿]/g, (c) => "\\u" + c.charCodeAt(0).toString(16).padStart(4, "0"));
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+  class NetworkError extends Error {}
+
+  // Sur iPhone, un envoi coupé par une perte de réseau peut rester bloqué sans jamais échouer.
+  // On l'interrompt donc au bout d'un délai (selon la taille) ou dès que le téléphone passe hors ligne.
+  let currentUpload = null;
+
+  async function uploadOnce(p, token) {
+    const base = (CFG.BASE_PATH || "").replace(/\/+$/, "");
+    const body = p.data || p.blob; // p.blob : photos prises avec l'ancienne version
+    const size = body.byteLength || body.size || 0;
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 30000 + size / 20); // 30 s + ~50 s par Mo
+    currentUpload = ctrl;
+    let res;
+    try {
+      res = await fetch("https://content.dropboxapi.com/2/files/upload", {
+        method: "POST",
+        headers: {
+          "Authorization": "Bearer " + token,
+          "Dropbox-API-Arg": asciiJson({ path: `${base}/${p.dossier}/${p.name}`, mode: "add", autorename: true, mute: true }),
+          "Content-Type": "application/octet-stream",
+        },
+        body,
+        signal: ctrl.signal,
+      });
+    } catch {
+      throw new NetworkError("Pas de réseau");
+    } finally {
+      clearTimeout(timer);
+      currentUpload = null;
+    }
+    return res;
+  }
+
+  async function uploadPhoto(p) {
+    let token = await getAccessToken();
+    let res = await uploadOnce(p, token);
+    if (res.status === 401 && auth.mode === "refresh") {
+      token = await getAccessToken(true);
+      res = await uploadOnce(p, token);
+    }
+    if (res.ok) return;
+    if (res.status === 401) throw new AuthError(auth.mode === "token" ? "Le token de test a expiré" : "Connexion Dropbox refusée");
+    let detail = "";
+    try { detail = (await res.json()).error_summary || ""; } catch { /* corps vide */ }
+    if (detail.includes("insufficient_space")) throw new Error("Dropbox est plein");
+    const err = new Error("Erreur Dropbox " + res.status + (detail ? " (" + detail + ")" : ""));
+    err.retryAfter = Number(res.headers.get("Retry-After")) || 0;
+    err.transient = res.status === 429 || res.status >= 500;
+    throw err;
+  }
+
+  let running = false;
+  let authProblem = null;
+  let sendingProgress = null;
+  let wakeLock = null;
+
+  async function keepAwake(on) {
+    try {
+      if (on && !wakeLock && "wakeLock" in navigator) wakeLock = await navigator.wakeLock.request("screen");
+      if (!on && wakeLock) { await wakeLock.release(); wakeLock = null; }
+    } catch { wakeLock = null; }
+  }
+
+  let rerunRequested = false;
+
+  // resetDelays : on oublie les délais d'attente et on réessaie tout de suite
+  // (retour du réseau, retour dans l'appli, bouton « Réessayer »).
+  async function processQueue(opts) {
+    const resetDelays = !!(opts && opts.resetDelays);
+    if (running) { if (resetDelays) rerunRequested = true; return; }
+    if (!auth || authProblem || navigator.onLine === false) return;
+    running = true;
+    try {
+      if (resetDelays) {
+        for (const p of await photosAll()) {
+          if (p.status !== "sent" && p.nextTryAt) { p.nextTryAt = 0; await photoPut(p); }
+        }
+      }
+      const todo = (await photosAll())
+        .filter((p) => p.status !== "sent" && (p.nextTryAt || 0) <= Date.now())
+        .sort((a, b) => a.createdAt - b.createdAt);
+      if (!todo.length) return;
+      await keepAwake(true);
+      sendingProgress = { done: 0, total: todo.length };
+      for (const p of todo) {
+        // la photo a pu être retirée entre-temps
+        const fresh = await tx("photos", "readonly", (s) => req2p(s.get(p.id)));
+        if (!fresh || fresh.status === "sent") { sendingProgress.done++; continue; }
+        fresh.status = "sending";
+        await photoPut(fresh);
+        await render();
+        let ok = false, lastErr = null;
+        // 3 tentatives (1 + 2 relances automatiques) avec petite attente
+        for (let attempt = 0; attempt < 3 && !ok; attempt++) {
+          try {
+            await uploadPhoto(fresh);
+            ok = true;
+          } catch (e) {
+            lastErr = e;
+            if (e instanceof AuthError || e instanceof NetworkError) break;
+            if (!e.transient) break;
+            await sleep(e.retryAfter ? e.retryAfter * 1000 : 2000 * (attempt + 1));
+          }
+        }
+        if (ok) {
+          // On garde seulement la miniature pour l'affichage ; la photo complète est libérée.
+          fresh.status = "sent"; fresh.data = null; fresh.blob = null; fresh.sentAt = Date.now(); fresh.error = "";
+          await photoPut(fresh);
+          sendingProgress.done++;
+        } else if (lastErr instanceof NetworkError) {
+          // Pas de réseau : ce n'est pas un échec de la photo. Elle reste en attente
+          // et on n'insiste pas sur les autres ; tout repart au retour du réseau.
+          fresh.status = "pending";
+          fresh.nextTryAt = Date.now() + 10000;
+          await photoPut(fresh);
+          break;
+        } else {
+          fresh.attempts = (fresh.attempts || 0) + 1;
+          fresh.status = "error";
+          fresh.error = lastErr ? lastErr.message : "Erreur";
+          // nouvel essai automatique plus tard (de plus en plus espacé, max 1 min)
+          fresh.nextTryAt = Date.now() + Math.min(60000, 10000 * fresh.attempts);
+          await photoPut(fresh);
+          if (lastErr instanceof AuthError) { authProblem = lastErr.message; break; }
+        }
+        await render();
+      }
+    } finally {
+      sendingProgress = null;
+      running = false;
+      await keepAwake(false);
+      await render();
+      if (rerunRequested) { rerunRequested = false; processQueue({ resetDelays: true }); }
+    }
+  }
+
+  // ---------- Affichage ----------
+  const thumbUrls = new Map();
+  function thumbUrl(p) {
+    if (!p.thumb) return "";
+    if (typeof p.thumb === "string") return p.thumb;
+    if (!thumbUrls.has(p.id)) thumbUrls.set(p.id, URL.createObjectURL(p.thumb));
+    return thumbUrls.get(p.id);
+  }
+
+  function currentDossier() { return $("dossier").value.trim().toUpperCase(); }
+
+  const ICONS = {
+    sent: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>',
+    pending: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
+    error: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round"><path d="M12 6v8M12 18h.01"/></svg>',
+    sending: "",
+    remove: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>',
+    empty: '<svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>',
+  };
+  const LABELS = { pending: "En attente", sending: "Envoi en cours", sent: "Envoyée", error: "Échec, nouvel essai automatique" };
+  const plural = (n, word) => `${n} ${word}${n > 1 ? "s" : ""}`;
+
+  function setStatus(kind, text) {
+    const st = $("status");
+    st.className = "status" + (kind ? " " + kind : "");
+    $("statusText").textContent = text;
+  }
+
+  async function render() {
+    const photos = await photosAll();
+    const waiting = photos.filter((p) => p.status !== "sent");
+    const errors = photos.filter((p) => p.status === "error");
+
+    // Bandeau d'état
+    if (authProblem) {
+      setStatus("err", `${authProblem}. Touchez ⚙ pour reconnecter. Les photos restent sur le téléphone.`);
+    } else if (sendingProgress) {
+      setStatus("busy", `Envoi en cours… ${sendingProgress.done}/${sendingProgress.total}`);
+    } else if (!waiting.length) {
+      setStatus("ok", photos.length ? "Tout est dans Dropbox" : "Prêt");
+    } else if (!navigator.onLine) {
+      setStatus("warn", `Hors ligne · ${plural(waiting.length, "photo")} en attente. Envoi automatique au retour du réseau.`);
+    } else if (errors.length) {
+      setStatus("warn", `${plural(waiting.length, "photo")} en attente · nouvel essai automatique`);
+    } else {
+      setStatus("warn", `${plural(waiting.length, "photo")} en attente d'envoi`);
+    }
+    $("retryBtn").classList.toggle("hidden", !waiting.length || !!sendingProgress);
+    $("todayCount").textContent = photos.length ? plural(photos.length, "photo") : "";
+
+    // Liste par dossier, dossier en cours en premier
+    const cur = currentDossier();
+    const groups = new Map();
+    for (const p of photos) {
+      if (!groups.has(p.dossier)) groups.set(p.dossier, []);
+      groups.get(p.dossier).push(p);
+    }
+    const order = [...groups.keys()].sort((a, b) => (a === cur ? -1 : b === cur ? 1 : a.localeCompare(b)));
+    const list = $("list");
+    list.textContent = "";
+    if (!order.length) {
+      const e = document.createElement("div");
+      e.className = "card empty";
+      e.innerHTML = ICONS.empty;
+      e.append("Aucune photo pour l'instant. Saisissez un numéro de dossier puis touchez « Prendre une photo ».");
+      list.append(e);
+    }
+    for (const d of order) {
+      const items = groups.get(d).sort((a, b) => a.createdAt - b.createdAt);
+      const sent = items.filter((p) => p.status === "sent").length;
+      const done = sent === items.length;
+      const box = document.createElement("div");
+      box.className = "card";
+
+      const head = document.createElement("div");
+      head.className = "dossier-head";
+      const num = document.createElement("div");
+      num.className = "dossier-num";
+      const lbl = document.createElement("small");
+      lbl.textContent = d === cur ? "Dossier en cours" : "Dossier";
+      num.append(lbl, d);
+      const chip = document.createElement("span");
+      chip.className = "chip" + (done ? " done" : "");
+      chip.textContent = done ? `✓ ${plural(items.length, "photo")} envoyée${items.length > 1 ? "s" : ""}` : `${sent}/${items.length} envoyée${sent > 1 ? "s" : ""}`;
+      head.append(num, chip);
+
+      const bar = document.createElement("div");
+      bar.className = "progress" + (done ? " done" : "");
+      const fill = document.createElement("i");
+      fill.style.width = Math.round((sent / items.length) * 100) + "%";
+      bar.append(fill);
+
+      const grid = document.createElement("div");
+      grid.className = "grid";
+      for (const p of items) {
+        const tile = document.createElement("div");
+        tile.className = "tile " + p.status;
+        const img = document.createElement("img");
+        img.alt = p.name;
+        img.src = thumbUrl(p);
+        const badge = document.createElement("div");
+        badge.className = "badge " + p.status;
+        badge.setAttribute("role", "img");
+        badge.setAttribute("aria-label", LABELS[p.status] || p.status);
+        badge.title = p.status === "error" && p.error ? p.error : (LABELS[p.status] || "");
+        badge.innerHTML = ICONS[p.status] || "";
+        tile.append(img, badge);
+        if (p.status === "pending" || p.status === "error") {
+          const rm = document.createElement("button");
+          rm.className = "remove";
+          rm.type = "button";
+          rm.setAttribute("aria-label", "Retirer cette photo");
+          rm.innerHTML = ICONS.remove;
+          rm.onclick = async () => {
+            if (!confirm("Retirer cette photo ? Elle ne sera pas envoyée.")) return;
+            await photoDel(p.id);
+            if (thumbUrls.has(p.id)) { URL.revokeObjectURL(thumbUrls.get(p.id)); thumbUrls.delete(p.id); }
+            render();
+          };
+          tile.append(rm);
+        }
+        grid.append(tile);
+      }
+      box.append(head, bar, grid);
+      list.append(box);
+    }
+  }
+
+  function validateDossier(showError) {
+    const d = currentDossier();
+    const ok = DOSSIER_RE.test(d);
+    const hint = $("dossierHint");
+    hint.className = "hint" + (ok ? " ok" : showError ? " err" : "");
+    hint.textContent = ok ? `Les photos iront dans le dossier ${d}` : (showError ? "Saisissez d'abord un numéro de dossier." : "");
+    return ok;
+  }
+
+  // Ménage : on ne garde l'historique des photos envoyées que 24 h.
+  async function purgeOld() {
+    const limit = Date.now() - 24 * 3600 * 1000;
+    for (const p of await photosAll()) {
+      if (p.status === "sent" && (p.sentAt || 0) < limit) await photoDel(p.id);
+      if (p.status === "sending") { p.status = "pending"; await photoPut(p); } // envoi interrompu
+    }
+  }
+
+  // ---------- Écrans ----------
+  function showSetup(fromSettings) {
+    $("main").classList.add("hidden");
+    $("setup").classList.remove("hidden");
+    $("status").classList.add("hidden");
+    $("settingsBtn").classList.add("hidden");
+    const canOAuth = !!CFG.DROPBOX_APP_KEY && location.protocol === "https:";
+    $("oauthBlock").classList.toggle("hidden", !canOAuth);
+    $("setupCancel").classList.toggle("hidden", !fromSettings);
+  }
+  function showMain() {
+    $("setup").classList.add("hidden");
+    $("main").classList.remove("hidden");
+    $("status").classList.remove("hidden");
+    $("settingsBtn").classList.remove("hidden");
+    validateDossier(false);
+    render();
+    processQueue();
+  }
+
+  // ---------- Démarrage ----------
+  async function init() {
+    if ("serviceWorker" in navigator && location.protocol === "https:") {
+      navigator.serviceWorker.register("sw.js").catch(() => {});
+    }
+    if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+
+    $("dossier").value = lsGet("dernierDossier") || "";
+    $("dossier").addEventListener("input", () => {
+      lsSet("dernierDossier", currentDossier());
+      validateDossier(false);
+      render();
+    });
+
+    const pick = (input) => () => {
+      if (!validateDossier(true)) { $("dossier").focus(); return; }
+      input.dataset.dossier = currentDossier();
+      input.click();
+    };
+    $("cameraBtn").onclick = pick($("cameraInput"));
+    $("libraryBtn").onclick = pick($("libraryInput"));
+    for (const input of [$("cameraInput"), $("libraryInput")]) {
+      input.addEventListener("change", async () => {
+        const files = Array.from(input.files || []);
+        const d = input.dataset.dossier || currentDossier();
+        input.value = "";
+        if (files.length) await addFiles(files, d);
+      });
+    }
+
+    // Toucher le champ sélectionne le numéro : on tape directement le suivant.
+    $("dossier").addEventListener("focus", () => {
+      setTimeout(() => $("dossier").setSelectionRange(0, $("dossier").value.length), 0);
+    });
+    $("retryBtn").onclick = () => {
+      authProblem = null;
+      processQueue({ resetDelays: true });
+    };
+    $("settingsBtn").onclick = () => showSetup(true);
+    $("setupCancel").onclick = showMain;
+    $("oauthBtn").onclick = startOAuth;
+    $("tokenBtn").onclick = saveTokenFromInput;
+
+    // Relances automatiques : retour du réseau, retour dans l'appli, et toutes les 20 s.
+    window.addEventListener("online", () => { render(); processQueue({ resetDelays: true }); });
+    window.addEventListener("offline", () => {
+      if (currentUpload) currentUpload.abort();
+      render();
+    });
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") processQueue({ resetDelays: true });
+    });
+    setInterval(processQueue, 20000);
+
+    try {
+      auth = (await kvGet("auth")) || null;
+      await finishOAuthIfNeeded();
+      await purgeOld();
+    } catch (e) {
+      alert("Stockage du téléphone indisponible : " + e.message);
+    }
+    if (auth) showMain(); else showSetup(false);
+  }
+
+  init();
+})();
+</script>
+</body>
+</html>
