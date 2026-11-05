@@ -204,17 +204,23 @@
         <button id="oauthBtn" class="btn btn-teal" type="button">Se connecter à Dropbox</button>
       </div>
       <p class="hint" id="oauthHint"></p>
-      <div class="or"><span>ou</span></div>
     </div>
 
-    <label class="field-label" for="tokenInput">Coller un token</label>
-    <p class="muted">Token de test (commence par <b>sl.</b>, valable environ 4 h) ou token de connexion fourni par l'administrateur.</p>
-    <textarea id="tokenInput" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="Coller le token ici"></textarea>
+    <!-- Secours, invisible par défaut : affiché en local (http) ou avec #avance à la fin de l'adresse. -->
+    <div id="tokenBlock">
+      <div class="or" id="tokenOr"><span>ou</span></div>
+      <label class="field-label" for="tokenInput">Coller un token</label>
+      <p class="muted">Token de test (commence par <b>sl.</b>, valable environ 4 h) ou token de connexion fourni par l'administrateur.</p>
+      <textarea id="tokenInput" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="Coller le token ici"></textarea>
+      <div class="setup-actions">
+        <button id="tokenBtn" class="btn btn-teal" type="button">Enregistrer</button>
+      </div>
+      <p class="hint" id="tokenHint"></p>
+    </div>
+
     <div class="setup-actions">
-      <button id="tokenBtn" class="btn btn-teal" type="button">Enregistrer</button>
       <button id="setupCancel" class="btn hidden" type="button">Retour</button>
     </div>
-    <p class="hint" id="tokenHint"></p>
   </div>
 </section>
 
@@ -779,13 +785,16 @@
     $("settingsBtn").classList.add("hidden");
     const canOAuth = !!CFG.DROPBOX_APP_KEY && location.protocol === "https:";
     $("oauthBlock").classList.toggle("hidden", !canOAuth);
+    const showToken = !canOAuth || location.hash === "#avance";
+    $("tokenBlock").classList.toggle("hidden", !showToken);
+    $("tokenOr").classList.toggle("hidden", !canOAuth);
     $("setupCancel").classList.toggle("hidden", !fromSettings);
     // Déjà connecté : on propose d'abord la déconnexion, la reconnexion passe en second.
     const connected = !!auth;
     $("accountCard").classList.toggle("hidden", !connected);
     $("configCard").classList.toggle("lift", !connected);
-    $("configTitle").textContent = connected ? "Changer de connexion" : "Configuration";
-    $("configIntro").textContent = connected ? "Pour utiliser un autre compte ou un autre token." : "À faire une seule fois sur ce téléphone.";
+    $("configTitle").textContent = connected ? "Changer de compte" : "Configuration";
+    $("configIntro").textContent = connected ? "Pour connecter ce téléphone à un autre compte Dropbox." : "À faire une seule fois sur ce téléphone.";
     $("setupCancel").classList.toggle("hidden", !fromSettings || connected);
     window.scrollTo(0, 0);
   }
