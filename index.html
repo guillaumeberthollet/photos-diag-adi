@@ -53,6 +53,11 @@
     padding: max(14px, env(safe-area-inset-top)) 0 22px;
     border-radius: 0 0 28px 28px;
   }
+  /* Appli installée sur l'écran d'accueil : iOS floute une bande en haut, plus haute que la barre d'état.
+     On descend le contenu de l'en-tête sous cette bande, qui ne recouvre alors que du vert uni. */
+  @media (display-mode: standalone) {
+    .top { padding-top: calc(env(safe-area-inset-top) + 40px); }
+  }
   .top-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
   .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 19px; letter-spacing: -.2px; }
   .brand-mark {
