@@ -28,7 +28,7 @@ Page web (PWA) pour iPhone : on saisit un numéro de dossier, on prend les photo
 
 Les photos arrivent dans **Applications › <nom de l'appli> › <numéro de dossier>** du compte Dropbox connecté.
 
-> ⚠️ La permission `files.content.write` permet aussi de supprimer ou d'écraser des fichiers dans ce dossier. L'appli ne le fait jamais, mais protégez le token : ne le publiez nulle part. En cas de perte d'un téléphone, révoquez l'accès dans Dropbox (Paramètres › Applications connectées).
+> ⚠️ La permission `files.content.write` permet aussi de supprimer ou d'écraser des fichiers dans ce dossier. L'appli ne le fait jamais, mais protégez le token : ne le publiez nulle part. En cas de perte ou de vol d'un téléphone, coupez son accès depuis un ordinateur : sur dropbox.com, connecté au compte qui reçoit les photos, **Paramètres › Applications connectées › Photos Diag ADI › Déconnecter**. Attention : cela coupe tous les téléphones connectés à ce compte Dropbox ; il faudra reconnecter les autres. En dernier recours, le bouton « Dissocier tous les utilisateurs » de la console développeur coupe tous les comptes d'un coup.
 
 ## 2. Tester tout de suite (token court)
 
