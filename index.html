@@ -106,6 +106,7 @@
   .btn-primary { min-height: 70px; font-size: 20px; background: var(--orange); border-color: var(--orange); color: var(--teal-dark); margin-top: 14px; box-shadow: 0 6px 16px rgba(254, 138, 91, .35); }
   .btn-primary:active { background: var(--orange-press); border-color: var(--orange-press); }
   .btn-teal { background: var(--teal); color: #fff; }
+  .btn-danger { border-color: var(--err); color: var(--err); }
   .btn-ghost { border-color: transparent; background: var(--teal-soft); }
   .btn-second { margin-top: 10px; font-size: 16px; }
   .busy { color: var(--muted); font-size: 15px; margin: 10px 2px 0; text-align: center; }
@@ -184,9 +185,18 @@
 
 <!-- ===== Écran de configuration ===== -->
 <section id="setup" class="hidden">
-  <div class="card lift">
-    <h2>Configuration</h2>
-    <p class="muted">À faire une seule fois sur ce téléphone.</p>
+  <div id="accountCard" class="card lift hidden">
+    <h2>Compte Dropbox</h2>
+    <p class="muted">Ce téléphone est connecté à Dropbox. Déconnectez-le en cas de perte, de changement de compte ou avant de le confier à quelqu'un d'autre.</p>
+    <div class="setup-actions">
+      <button id="logoutBtn" class="btn btn-danger" type="button">Se déconnecter</button>
+      <button id="accountBack" class="btn" type="button">Retour</button>
+    </div>
+  </div>
+
+  <div id="configCard" class="card lift">
+    <h2 id="configTitle">Configuration</h2>
+    <p class="muted" id="configIntro">À faire une seule fois sur ce téléphone.</p>
 
     <div id="oauthBlock">
       <div class="setup-actions">
@@ -769,6 +779,38 @@
     const canOAuth = !!CFG.DROPBOX_APP_KEY && location.protocol === "https:";
     $("oauthBlock").classList.toggle("hidden", !canOAuth);
     $("setupCancel").classList.toggle("hidden", !fromSettings);
+    // Déjà connecté : on propose d'abord la déconnexion, la reconnexion passe en second.
+    const connected = !!auth;
+    $("accountCard").classList.toggle("hidden", !connected);
+    $("configCard").classList.toggle("lift", !connected);
+    $("configTitle").textContent = connected ? "Changer de connexion" : "Configuration";
+    $("configIntro").textContent = connected ? "Pour utiliser un autre compte ou un autre token." : "À faire une seule fois sur ce téléphone.";
+    $("setupCancel").classList.toggle("hidden", !fromSettings || connected);
+    window.scrollTo(0, 0);
+  }
+
+  // Déconnexion : on oublie le token sur ce téléphone et on le révoque chez Dropbox si le réseau le permet.
+  // Les photos pas encore envoyées restent sur le téléphone et partiront après reconnexion.
+  async function logout() {
+    const waiting = (await photosAll()).filter((p) => p.status !== "sent").length;
+    const msg = waiting
+      ? `Se déconnecter de Dropbox ?\n\n${plural(waiting, "photo")} pas encore envoyée${waiting > 1 ? "s" : ""} ${waiting > 1 ? "resteront" : "restera"} sur ce téléphone et ${waiting > 1 ? "partiront" : "partira"} après la reconnexion.`
+      : "Se déconnecter de Dropbox sur ce téléphone ?";
+    if (!confirm(msg)) return;
+    if (auth && !authProblem) {
+      try {
+        const token = await getAccessToken();
+        const ctrl = new AbortController();
+        const timer = setTimeout(() => ctrl.abort(), 5000);
+        await fetch("https://api.dropboxapi.com/2/auth/token/revoke", {
+          method: "POST", headers: { "Authorization": "Bearer " + token }, signal: ctrl.signal,
+        }).catch(() => {});
+        clearTimeout(timer);
+      } catch { /* hors ligne ou token déjà invalide : la déconnexion locale suffit */ }
+    }
+    await kvDel("auth");
+    auth = null; accessToken = null; accessExpiresAt = 0; authProblem = null;
+    showSetup(false);
   }
   function showMain() {
     $("setup").classList.add("hidden");
@@ -820,6 +862,8 @@
     };
     $("settingsBtn").onclick = () => showSetup(true);
     $("setupCancel").onclick = showMain;
+    $("accountBack").onclick = showMain;
+    $("logoutBtn").onclick = logout;
     $("oauthBtn").onclick = startOAuth;
     $("tokenBtn").onclick = saveTokenFromInput;
 
