@@ -165,6 +165,59 @@
   .or { display: flex; align-items: center; gap: 12px; color: var(--muted); font-size: 14px; font-weight: 700; margin: 6px 0 16px; }
   .or::before, .or::after { content: ""; flex: 1; height: 1px; background: #d5dfdf; }
 
+  /* ---- Barre d'action fixe en bas (à portée de pouce) ---- */
+  body.has-bar { padding-bottom: calc(118px + env(safe-area-inset-bottom)); }
+  .actionbar {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 20;
+    background: rgba(255, 255, 255, .94); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+    box-shadow: 0 -1px 0 rgba(11, 42, 44, .08), 0 -8px 24px rgba(11, 42, 44, .08);
+    padding: 12px 0 max(12px, env(safe-area-inset-bottom));
+    transition: transform .2s ease;
+  }
+  .actionbar .busy { margin: 0 0 8px; }
+  .actionbar-row { display: flex; gap: 10px; }
+  .actionbar .btn-primary { margin: 0; flex: 1; min-height: 68px; box-shadow: none; }
+  .btn-square {
+    flex: none; width: 68px; min-height: 68px; padding: 0; border-radius: 22px;
+    border-color: transparent; background: var(--teal-soft);
+  }
+  /* Pendant la saisie du numéro, le clavier prend la place : la barre s'efface. */
+  body.typing .actionbar { transform: translateY(110%); }
+
+  /* ---- Vue en grand ---- */
+  .tile { cursor: pointer; }
+  .viewer {
+    position: fixed; inset: 0; z-index: 50; background: #000; color: #fff;
+    display: flex; flex-direction: column;
+  }
+  .v-top, .v-bottom { flex: none; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 14px; }
+  .v-top { padding-top: max(10px, env(safe-area-inset-top)); }
+  @media (display-mode: standalone) { .v-top { padding-top: calc(env(safe-area-inset-top) + 12px); } }
+  .v-bottom { padding-bottom: max(14px, env(safe-area-inset-bottom)); min-height: 76px; }
+  .v-title { text-align: center; font-weight: 800; font-size: 17px; line-height: 1.2; }
+  .v-title span { display: block; font-size: 14px; font-weight: 600; opacity: .7; }
+  .v-btn {
+    width: 44px; height: 44px; border-radius: 22px; border: 0; padding: 0; cursor: pointer;
+    background: rgba(255, 255, 255, .16); color: #fff; display: grid; place-items: center; flex: none;
+  }
+  .v-spacer { width: 44px; flex: none; }
+  .v-track {
+    flex: 1; min-height: 0; display: flex; overflow-x: auto; overflow-y: hidden;
+    scroll-snap-type: x mandatory; overscroll-behavior: contain; scrollbar-width: none;
+  }
+  .v-track::-webkit-scrollbar { display: none; }
+  .v-slide { flex: 0 0 100%; height: 100%; scroll-snap-align: center; scroll-snap-stop: always; display: grid; place-items: center; }
+  .v-slide img { width: 100%; height: 100%; object-fit: contain; display: block; }
+  .v-status { font-weight: 700; font-size: 15px; display: flex; align-items: center; gap: 8px; }
+  .v-status::before { content: ""; width: 10px; height: 10px; border-radius: 5px; background: var(--orange); flex: none; }
+  .v-status.sent::before { background: #4ade80; }
+  .v-status.error::before { background: #ff6b5e; }
+  .v-del {
+    min-height: 48px; padding: 0 18px; border-radius: 999px; border: 2px solid #ff8a80; background: transparent;
+    color: #ff8a80; font: inherit; font-size: 16px; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 8px;
+  }
+  body.viewing { overflow: hidden; }
+
   @keyframes spin { to { transform: rotate(360deg); } }
   @media (prefers-reduced-motion: reduce) { * { animation-duration: 2s !important; transition: none !important; } }
 </style>
@@ -235,16 +288,22 @@
     <label class="field-label" for="dossier">Dossier n°</label>
     <input id="dossier" type="text" inputmode="numeric" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" enterkeyhint="done" placeholder="22580">
     <p class="hint" id="dossierHint"></p>
+  </div>
 
-    <button id="cameraBtn" class="btn btn-primary" type="button">
-      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-      Prendre une photo
-    </button>
-    <button id="libraryBtn" class="btn btn-ghost btn-second" type="button">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
-      Choisir dans la photothèque
-    </button>
-    <p class="busy" id="busy"></p>
+  <!-- Barre fixe en bas : toujours à portée de pouce -->
+  <div class="actionbar" id="actionbar">
+    <div class="wrap">
+      <p class="busy" id="busy"></p>
+      <div class="actionbar-row">
+        <button id="cameraBtn" class="btn btn-primary" type="button">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+          Prendre une photo
+        </button>
+        <button id="libraryBtn" class="btn btn-square" type="button" aria-label="Choisir dans la photothèque" title="Choisir dans la photothèque">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+        </button>
+      </div>
+    </div>
   </div>
 
   <input id="cameraInput" type="file" accept="image/*" capture="environment" class="hidden">
@@ -259,6 +318,25 @@
 </section>
 
 </main>
+
+<!-- ===== Vue en grand ===== -->
+<div id="viewer" class="viewer hidden" role="dialog" aria-modal="true" aria-label="Photo en grand">
+  <div class="v-top">
+    <button id="vClose" class="v-btn" type="button" aria-label="Fermer">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+    </button>
+    <div class="v-title"><div id="vDossier"></div><span id="vCount"></span></div>
+    <div class="v-spacer"></div>
+  </div>
+  <div id="vTrack" class="v-track"></div>
+  <div class="v-bottom">
+    <span id="vStatus" class="v-status"></span>
+    <button id="vDelete" class="v-del" type="button">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg>
+      Retirer
+    </button>
+  </div>
+</div>
 
 <script src="config.js"></script>
 <script>
@@ -455,12 +533,15 @@
   }
 
   // Miniature en texte (data URL) : toujours affichable, même après mise à jour de l'enregistrement.
-  function makeThumb(img) {
-    const c = drawCanvas(img, 360);
-    const url = c.toDataURL("image/jpeg", 0.7);
+  function makeDataUrl(img, side, quality) {
+    const c = drawCanvas(img, side);
+    const url = c.toDataURL("image/jpeg", quality);
     c.width = c.height = 0;
     return url;
   }
+  const makeThumb = (img) => makeDataUrl(img, 360, 0.7);
+  // Aperçu moyen pour la vue en grand : gardé 24 h, même après l'envoi (la photo complète, elle, est libérée).
+  const makePreview = (img) => makeDataUrl(img, 1280, 0.72);
 
   async function nextSeq(dossier) {
     const key = "seq:" + dossier;
@@ -477,12 +558,13 @@
         const img = await loadImage(list[i]);
         const data = await compressPhoto(img);
         const thumb = makeThumb(img);
+        const preview = makePreview(img);
         const taken = new Date();
         const seq = await nextSeq(dossier);
         await photoPut({
           dossier,
           name: `${dossier}-${stamp(taken)}-${pad(seq, 3)}.jpg`,
-          data, thumb, status: "pending", attempts: 0, nextTryAt: 0,
+          data, thumb, preview, status: "pending", attempts: 0, nextTryAt: 0,
           createdAt: Date.now(), error: "",
         });
         await render();
@@ -730,9 +812,12 @@
 
       const grid = document.createElement("div");
       grid.className = "grid";
-      for (const p of items) {
+      items.forEach((p, idx) => {
         const tile = document.createElement("div");
         tile.className = "tile " + p.status;
+        tile.setAttribute("role", "button");
+        tile.setAttribute("aria-label", "Voir la photo en grand");
+        tile.onclick = () => openViewer(d, idx);
         const img = document.createElement("img");
         img.alt = p.name;
         img.src = thumbUrl(p);
@@ -749,19 +834,137 @@
           rm.type = "button";
           rm.setAttribute("aria-label", "Retirer cette photo");
           rm.innerHTML = ICONS.remove;
-          rm.onclick = async () => {
-            if (!confirm("Retirer cette photo ? Elle ne sera pas envoyée.")) return;
-            await photoDel(p.id);
-            if (thumbUrls.has(p.id)) { URL.revokeObjectURL(thumbUrls.get(p.id)); thumbUrls.delete(p.id); }
-            render();
+          rm.onclick = async (e) => {
+            e.stopPropagation();
+            if (await removePhoto(p)) render();
           };
           tile.append(rm);
         }
         grid.append(tile);
-      }
+      });
       box.append(head, bar, grid);
       list.append(box);
     }
+    viewerRefresh(photos);
+  }
+
+  async function removePhoto(p) {
+    if (!confirm("Retirer cette photo ? Elle ne sera pas envoyée.")) return false;
+    await photoDel(p.id);
+    if (thumbUrls.has(p.id)) { URL.revokeObjectURL(thumbUrls.get(p.id)); thumbUrls.delete(p.id); }
+    return true;
+  }
+
+  // ---------- Vue en grand ----------
+  // Défilement natif avec aimantation (scroll-snap) : glissement fluide au doigt, sur iPhone comme sur Android.
+  const viewer = { open: false, dossier: "", items: [], index: 0, urls: new Map(), pushed: false };
+
+  function viewerSrc(p) {
+    if (p.preview) return p.preview;
+    const body = p.data || p.blob; // photos prises avant cette version : photo complète si encore là
+    if (body) {
+      if (!viewer.urls.has(p.id)) viewer.urls.set(p.id, URL.createObjectURL(body instanceof Blob ? body : new Blob([body], { type: "image/jpeg" })));
+      return viewer.urls.get(p.id);
+    }
+    return thumbUrl(p);
+  }
+
+  function viewerBuild() {
+    const track = $("vTrack");
+    track.textContent = "";
+    for (const p of viewer.items) {
+      const s = document.createElement("div");
+      s.className = "v-slide";
+      const img = document.createElement("img");
+      img.alt = p.name;
+      img.draggable = false;
+      s.append(img);
+      track.append(s);
+    }
+  }
+
+  // On ne charge que la photo affichée et ses voisines : économise la mémoire du téléphone.
+  function viewerLoadAround() {
+    const slides = $("vTrack").children;
+    for (let i = 0; i < slides.length; i++) {
+      const img = slides[i].firstChild;
+      if (Math.abs(i - viewer.index) <= 1) {
+        if (!img.getAttribute("src")) img.src = viewerSrc(viewer.items[i]);
+      } else if (img.getAttribute("src")) {
+        img.removeAttribute("src");
+      }
+    }
+  }
+
+  function viewerUpdateInfo() {
+    const p = viewer.items[viewer.index];
+    if (!p) return;
+    $("vDossier").textContent = "Dossier " + viewer.dossier;
+    $("vCount").textContent = `${viewer.index + 1} / ${viewer.items.length}`;
+    const st = $("vStatus");
+    st.className = "v-status " + p.status;
+    st.textContent = p.status === "sent" ? "Envoyée dans Dropbox"
+      : p.status === "sending" ? "Envoi en cours…"
+      : p.status === "error" ? "Échec, nouvel essai automatique"
+      : "En attente d'envoi";
+    // Une photo déjà envoyée ou en cours d'envoi ne peut plus être retirée d'ici.
+    $("vDelete").classList.toggle("hidden", !(p.status === "pending" || p.status === "error"));
+  }
+
+  function viewerGoTo(i, smooth) {
+    const track = $("vTrack");
+    viewer.index = Math.max(0, Math.min(viewer.items.length - 1, i));
+    track.scrollTo({ left: viewer.index * track.clientWidth, behavior: smooth ? "smooth" : "auto" });
+    viewerLoadAround();
+    viewerUpdateInfo();
+  }
+
+  async function openViewer(dossier, index) {
+    const photos = await photosAll();
+    viewer.items = photos.filter((p) => p.dossier === dossier).sort((a, b) => a.createdAt - b.createdAt);
+    if (!viewer.items.length) return;
+    viewer.dossier = dossier;
+    viewer.open = true;
+    viewerBuild();
+    $("viewer").classList.remove("hidden");
+    document.body.classList.add("viewing");
+    // Le bouton « retour » d'Android (et le geste retour) ferme la vue au lieu de quitter l'appli.
+    if (!viewer.pushed) { history.pushState({ viewer: 1 }, ""); viewer.pushed = true; }
+    viewerGoTo(index, false);
+  }
+
+  function hideViewer() {
+    viewer.open = false;
+    $("viewer").classList.add("hidden");
+    document.body.classList.remove("viewing");
+    $("vTrack").textContent = "";
+    for (const u of viewer.urls.values()) URL.revokeObjectURL(u);
+    viewer.urls.clear();
+    viewer.items = [];
+  }
+
+  function closeViewer() {
+    if (viewer.pushed) history.back(); // déclenche popstate, qui masque la vue
+    else hideViewer();
+  }
+
+  // Les états changent pendant l'envoi : on met à jour la vue sans la reconstruire.
+  function viewerRefresh(photos) {
+    if (!viewer.open) return;
+    const byId = new Map(photos.map((p) => [p.id, p]));
+    viewer.items = viewer.items.map((p) => byId.get(p.id) || p);
+    viewerUpdateInfo();
+  }
+
+  async function viewerDelete() {
+    const p = viewer.items[viewer.index];
+    if (!p || !(await removePhoto(p))) return;
+    if (viewer.urls.has(p.id)) { URL.revokeObjectURL(viewer.urls.get(p.id)); viewer.urls.delete(p.id); }
+    viewer.items.splice(viewer.index, 1);
+    if (!viewer.items.length) { closeViewer(); render(); return; }
+    viewerBuild();
+    viewerGoTo(Math.min(viewer.index, viewer.items.length - 1), false);
+    render();
   }
 
   function validateDossier(showError) {
@@ -788,6 +991,7 @@
     $("setup").classList.remove("hidden");
     $("status").classList.add("hidden");
     $("settingsBtn").classList.add("hidden");
+    document.body.classList.remove("has-bar");
     const canOAuth = !!CFG.DROPBOX_APP_KEY && location.protocol === "https:";
     $("oauthBlock").classList.toggle("hidden", !canOAuth);
     const showToken = !canOAuth || location.hash === "#avance";
@@ -832,6 +1036,7 @@
     $("main").classList.remove("hidden");
     $("status").classList.remove("hidden");
     $("settingsBtn").classList.remove("hidden");
+    document.body.classList.add("has-bar");
     validateDossier(false);
     render();
     processQueue();
@@ -869,7 +1074,42 @@
 
     // Toucher le champ sélectionne le numéro : on tape directement le suivant.
     $("dossier").addEventListener("focus", () => {
+      document.body.classList.add("typing");
       setTimeout(() => $("dossier").setSelectionRange(0, $("dossier").value.length), 0);
+    });
+    // Clavier fermé : la barre du bas revient.
+    $("dossier").addEventListener("blur", () => document.body.classList.remove("typing"));
+    $("dossier").addEventListener("keydown", (e) => { if (e.key === "Enter") $("dossier").blur(); });
+    // Toucher ailleurs que dans le champ ferme le clavier.
+    document.addEventListener("touchstart", (e) => {
+      if (document.activeElement === $("dossier") && !e.target.closest("#dossier")) $("dossier").blur();
+    }, { passive: true });
+
+    // Vue en grand
+    $("vClose").onclick = closeViewer;
+    $("vDelete").onclick = viewerDelete;
+    let scrollTimer = null;
+    $("vTrack").addEventListener("scroll", () => {
+      if (!viewer.open) return;
+      const track = $("vTrack");
+      const i = Math.round(track.scrollLeft / Math.max(1, track.clientWidth));
+      if (i !== viewer.index && i >= 0 && i < viewer.items.length) {
+        viewer.index = i;
+        viewerUpdateInfo();
+      }
+      clearTimeout(scrollTimer);
+      scrollTimer = setTimeout(viewerLoadAround, 60);
+    }, { passive: true });
+    window.addEventListener("popstate", () => {
+      viewer.pushed = false;
+      if (viewer.open) hideViewer();
+    });
+    window.addEventListener("resize", () => { if (viewer.open) viewerGoTo(viewer.index, false); });
+    document.addEventListener("keydown", (e) => {
+      if (!viewer.open) return;
+      if (e.key === "Escape") closeViewer();
+      else if (e.key === "ArrowRight") viewerGoTo(viewer.index + 1, true);
+      else if (e.key === "ArrowLeft") viewerGoTo(viewer.index - 1, true);
     });
     $("retryBtn").onclick = () => {
       authProblem = null;
