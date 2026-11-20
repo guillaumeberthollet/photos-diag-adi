@@ -216,7 +216,12 @@
     min-height: 48px; padding: 0 18px; border-radius: 999px; border: 2px solid #ff8a80; background: transparent;
     color: #ff8a80; font: inherit; font-size: 16px; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 8px;
   }
-  body.viewing { overflow: hidden; }
+  /* iPhone (écran d'accueil) : la vue doit couvrir tout l'écran, barre du bas comprise,
+     et le fond de page passe en noir pour ne laisser aucune bande claire. */
+  .viewer { height: 100vh; height: 100lvh; bottom: auto; }
+  .v-del:disabled { opacity: .5; }
+  body.viewing { overflow: hidden; background: #000; }
+  html:has(body.viewing) { background: #000; }
 
   @keyframes spin { to { transform: rotate(360deg); } }
   @media (prefers-reduced-motion: reduce) { * { animation-duration: 2s !important; transition: none !important; } }
@@ -333,7 +338,7 @@
     <span id="vStatus" class="v-status"></span>
     <button id="vDelete" class="v-del" type="button">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg>
-      Retirer
+      <span id="vDeleteLabel">Retirer</span>
     </button>
   </div>
 </div>
@@ -622,7 +627,10 @@
       token = await getAccessToken(true);
       res = await uploadOnce(p, token);
     }
-    if (res.ok) return;
+    if (res.ok) {
+      // Chemin réel dans Dropbox (il peut différer si Dropbox a renommé le fichier) : sert à la suppression.
+      try { return (await res.json()).path_display || ""; } catch { return ""; }
+    }
     if (res.status === 401) throw new AuthError(auth.mode === "token" ? "Le token de test a expiré" : "Connexion Dropbox refusée");
     let detail = "";
     try { detail = (await res.json()).error_summary || ""; } catch { /* corps vide */ }
@@ -677,7 +685,7 @@
         // 3 tentatives (1 + 2 relances automatiques) avec petite attente
         for (let attempt = 0; attempt < 3 && !ok; attempt++) {
           try {
-            await uploadPhoto(fresh);
+            fresh.dropboxPath = await uploadPhoto(fresh);
             ok = true;
           } catch (e) {
             lastErr = e;
@@ -848,8 +856,53 @@
     viewerRefresh(photos);
   }
 
+  // Suppression dans Dropbox : la photo part dans la corbeille Dropbox (récupérable 30 jours).
+  async function deleteFromDropbox(p) {
+    const base = (CFG.BASE_PATH || "").replace(/\/+$/, "");
+    const path = p.dropboxPath || `${base}/${p.dossier}/${p.name}`;
+    const call = async (token) => {
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 20000);
+      try {
+        return await fetch("https://api.dropboxapi.com/2/files/delete_v2", {
+          method: "POST",
+          headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
+          body: JSON.stringify({ path }),
+          signal: ctrl.signal,
+        });
+      } catch {
+        throw new NetworkError("Pas de réseau");
+      } finally {
+        clearTimeout(timer);
+      }
+    };
+    let res = await call(await getAccessToken());
+    if (res.status === 401 && auth.mode === "refresh") res = await call(await getAccessToken(true));
+    if (res.ok) return;
+    let detail = "";
+    try { detail = (await res.json()).error_summary || ""; } catch { /* corps vide */ }
+    if (res.status === 409 && detail.includes("not_found")) return; // déjà supprimée dans Dropbox
+    if (res.status === 401) throw new AuthError("Connexion Dropbox refusée");
+    throw new Error("Erreur Dropbox " + res.status + (detail ? " (" + detail + ")" : ""));
+  }
+
   async function removePhoto(p) {
-    if (!confirm("Retirer cette photo ? Elle ne sera pas envoyée.")) return false;
+    if (p.status === "sent") {
+      if (!confirm("Supprimer cette photo ?\n\nElle sera aussi effacée de Dropbox (récupérable 30 jours dans la corbeille Dropbox).")) return false;
+      if (navigator.onLine === false) { alert("Pas de réseau. Réessayez quand le téléphone sera connecté."); return false; }
+      const btn = $("vDelete");
+      btn.disabled = true;
+      try {
+        await deleteFromDropbox(p);
+      } catch (e) {
+        alert(e instanceof NetworkError ? "Pas de réseau. Réessayez quand le téléphone sera connecté." : "Suppression impossible : " + e.message);
+        return false;
+      } finally {
+        btn.disabled = false;
+      }
+    } else if (!confirm("Retirer cette photo ? Elle ne sera pas envoyée.")) {
+      return false;
+    }
     await photoDel(p.id);
     if (thumbUrls.has(p.id)) { URL.revokeObjectURL(thumbUrls.get(p.id)); thumbUrls.delete(p.id); }
     return true;
@@ -907,8 +960,9 @@
       : p.status === "sending" ? "Envoi en cours…"
       : p.status === "error" ? "Échec, nouvel essai automatique"
       : "En attente d'envoi";
-    // Une photo déjà envoyée ou en cours d'envoi ne peut plus être retirée d'ici.
-    $("vDelete").classList.toggle("hidden", !(p.status === "pending" || p.status === "error"));
+    // Pendant l'envoi on ne touche à rien ; envoyée, la suppression efface aussi dans Dropbox.
+    $("vDelete").classList.toggle("hidden", p.status === "sending");
+    $("vDeleteLabel").textContent = p.status === "sent" ? "Supprimer" : "Retirer";
   }
 
   function viewerGoTo(i, smooth) {
