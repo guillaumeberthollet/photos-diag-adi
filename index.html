@@ -74,7 +74,9 @@
 
   .top-picto { flex: none; width: 48px; height: 48px; padding: 8px; border-radius: 14px; background: #fff; }
   #setupTitle { flex: 1; }
-  .top-row .status { flex: 1; min-width: 0; }
+  /* Même hauteur que le picto (48 px) pour un alignement net. */
+  .top-row .status { flex: 1; min-width: 0; min-height: 48px; align-items: center; }
+  .top-row .status .dot { margin-top: 0; }
   .status {
     display: flex; align-items: flex-start; gap: 10px;
     background: rgba(255, 255, 255, .12); border-radius: 14px; padding: 12px 14px;
