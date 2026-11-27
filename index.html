@@ -72,7 +72,8 @@
   }
   .icon-btn:active { background: rgba(255, 255, 255, .26); }
 
-  .brand-picto { width: 34px; height: 34px; padding: 5px; border-radius: 10px; background: #fff; }
+  .top-picto { flex: none; width: 48px; height: 48px; padding: 8px; border-radius: 14px; background: #fff; }
+  #setupTitle { flex: 1; }
   .top-row .status { flex: 1; min-width: 0; }
   .status {
     display: flex; align-items: flex-start; gap: 10px;
@@ -256,6 +257,8 @@
   .viewer { height: 100vh; height: 100lvh; bottom: auto; }
   .v-del:disabled { opacity: .5; }
   body.viewing { overflow: hidden; background: #000; }
+  /* Si iOS laisse une bande sous la barre du bas, elle prend la couleur de la barre. */
+  html:has(body.has-bar) { background: #fff; }
   html:has(body.viewing) { background: #000; }
 
   @keyframes spin { to { transform: rotate(360deg); } }
@@ -267,8 +270,9 @@
 <header class="top">
   <div class="wrap">
     <div class="top-row">
+      <img src="picto.svg" alt="ADI" width="48" height="48" class="top-picto">
       <div id="status" class="status hidden" role="status" aria-live="polite"><span class="dot"></span><span id="statusText">Chargement…</span></div>
-      <div id="setupTitle" class="brand"><img src="picto.svg" alt="" width="34" height="34" class="brand-picto">Photos Diag</div>
+      <div id="setupTitle" class="brand">Photos Diag</div>
       <button id="settingsBtn" class="icon-btn hidden" type="button" aria-label="Réglages Dropbox">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
       </button>
@@ -1306,7 +1310,13 @@
       setTimeout(() => $("dossier").setSelectionRange(0, $("dossier").value.length), 0);
     });
     // Clavier fermé : la barre du bas revient.
-    $("dossier").addEventListener("blur", () => document.body.classList.remove("typing"));
+    // iOS (appli écran d'accueil) laisse parfois la page décalée après la fermeture du clavier,
+    // ce qui coupe le bas de l'écran : on la remet en place.
+    $("dossier").addEventListener("blur", () => {
+      document.body.classList.remove("typing");
+      setTimeout(() => window.scrollTo(window.scrollX, window.scrollY), 60);
+      setTimeout(() => { if (window.visualViewport && window.visualViewport.offsetTop > 0) window.scrollTo(0, 0); }, 350);
+    });
     $("dossier").addEventListener("keydown", (e) => { if (e.key === "Enter") $("dossier").blur(); });
     // Toucher ailleurs que dans le champ ferme le clavier.
     document.addEventListener("touchstart", (e) => {
