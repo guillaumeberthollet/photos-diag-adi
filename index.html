@@ -1224,6 +1224,8 @@
     $("setupCancel").classList.toggle("hidden", !fromSettings);
     // Déjà connecté : on propose d'abord la déconnexion, la reconnexion passe en second.
     const connected = !!auth;
+    // Titre : « Réglages » une fois connecté, nom de l'appli à la première installation.
+    $("setupTitle").textContent = connected ? "Réglages" : "Photos Diag";
     $("accountCard").classList.toggle("hidden", !connected);
     $("configCard").classList.toggle("lift", !connected);
     $("configTitle").textContent = connected ? "Changer de compte" : "Configuration";
