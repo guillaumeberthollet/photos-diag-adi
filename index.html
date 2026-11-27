@@ -283,10 +283,6 @@
     <p class="muted">Ce téléphone est connecté à Dropbox. Déconnectez-le avant de changer de compte ou de confier le téléphone à quelqu'un d'autre.</p>
     <p class="muted"><b>Téléphone perdu ou volé ?</b> Depuis un ordinateur, sur dropbox.com : <b>Paramètres › Applications connectées › Photos Diag ADI › Déconnecter</b>. Le téléphone ne pourra plus rien envoyer.</p>
     <div class="setup-actions">
-      <label class="option-row" for="rafaleToggle">
-        <input type="checkbox" id="rafaleToggle">
-        <span><b>Bouton « Rafale »</b><br><span class="muted">Caméra intégrée à l'appli : une photo par appui, sans « Utiliser ». Pas de flash ni de 0,5× sur iPhone.</span></span>
-      </label>
       <button id="logoutBtn" class="btn btn-danger" type="button">Se déconnecter</button>
       <button id="accountBack" class="btn" type="button">Retour</button>
     </div>
@@ -1118,14 +1114,12 @@
   // Sur iPhone, une page web n'a accès ni au flash ni à l'ultra grand angle.
   const burst = { open: false, stream: null, dossier: "", count: 0, pushed: false, chain: Promise.resolve() };
 
-  // Activée par défaut ; désactivable dans les réglages (mémorisé sur le téléphone).
-  function rafaleEnabled() { return lsGet("rafale") !== "0"; }
+  // Rafale toujours affichée. Pour la retirer : passer RAFALE à false.
+  const RAFALE = true;
   function applyRafale() {
-    const on = rafaleEnabled();
-    document.body.classList.toggle("rafale", on);
-    $("rafaleBtn").classList.toggle("hidden", !on);
-    $("cameraLabel").textContent = on ? "Photo" : "Prendre une photo";
-    $("rafaleToggle").checked = on;
+    document.body.classList.toggle("rafale", RAFALE);
+    $("rafaleBtn").classList.toggle("hidden", !RAFALE);
+    $("cameraLabel").textContent = RAFALE ? "Photo" : "Prendre une photo";
   }
 
   async function openBurst() {
@@ -1296,10 +1290,6 @@
 
     // Caméra Rafale
     applyRafale();
-    $("rafaleToggle").addEventListener("change", () => {
-      lsSet("rafale", $("rafaleToggle").checked ? "1" : "0");
-      applyRafale();
-    });
     $("rafaleBtn").onclick = openBurst;
     $("bShutter").onclick = shoot;
     $("bDone").onclick = closeBurst;
