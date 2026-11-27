@@ -1,6 +1,6 @@
 // Service worker : permet d'ouvrir l'appli sans réseau.
 // Changer VERSION à chaque mise à jour des fichiers pour forcer le rafraîchissement.
-const VERSION = "photos-diag-v20";
+const VERSION = "photos-diag-v21";
 const FILES = ["./", "./index.html", "./config.js", "./manifest.json", "./icon-180.png", "./icon-192.png", "./icon-512.png", "./icon.svg", "./picto.svg"];
 
 self.addEventListener("install", (e) => {

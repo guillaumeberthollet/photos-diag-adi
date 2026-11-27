@@ -808,7 +808,9 @@
 
   function setStatus(kind, text) {
     const st = $("status");
-    st.className = "status" + (kind ? " " + kind : "");
+    // On garde « hidden » : sur l'écran des réglages, le bandeau d'état reste masqué.
+    const hidden = st.classList.contains("hidden");
+    st.className = "status" + (kind ? " " + kind : "") + (hidden ? " hidden" : "");
     $("statusText").textContent = text;
   }
 
