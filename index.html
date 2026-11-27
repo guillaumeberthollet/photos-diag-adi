@@ -11,6 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Photos Diag">
 <link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/svg+xml" href="icon.svg">
 <link rel="manifest" href="manifest.json">
 <style>
   /* Couleurs ADI : vert canard + orange. Toujours en clair : lisible en plein soleil. */
@@ -71,8 +72,10 @@
   }
   .icon-btn:active { background: rgba(255, 255, 255, .26); }
 
+  .brand-picto { width: 34px; height: 34px; padding: 5px; border-radius: 10px; background: #fff; }
+  .top-row .status { flex: 1; min-width: 0; }
   .status {
-    margin-top: 16px; display: flex; align-items: flex-start; gap: 10px;
+    display: flex; align-items: flex-start; gap: 10px;
     background: rgba(255, 255, 255, .12); border-radius: 14px; padding: 12px 14px;
     font-weight: 700; font-size: 16px;
   }
@@ -262,15 +265,12 @@
 <header class="top">
   <div class="wrap">
     <div class="top-row">
-      <div class="brand">
-        <div class="brand-mark">ADI</div>
-        <div>Photos Diag<small>Envoi direct vers Dropbox</small></div>
-      </div>
+      <div id="status" class="status hidden" role="status" aria-live="polite"><span class="dot"></span><span id="statusText">Chargement…</span></div>
+      <div id="setupTitle" class="brand"><img src="picto.svg" alt="" width="34" height="34" class="brand-picto">Photos Diag</div>
       <button id="settingsBtn" class="icon-btn hidden" type="button" aria-label="Réglages Dropbox">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
       </button>
     </div>
-    <div id="status" class="status hidden" role="status" aria-live="polite"><span class="dot"></span><span id="statusText">Chargement…</span></div>
   </div>
 </header>
 
@@ -342,7 +342,8 @@
           <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
           <span id="cameraLabel">Prendre une photo</span>
         </button>
-        <button id="libraryBtn" class="btn btn-square" type="button" aria-label="Choisir dans la photothèque" title="Choisir dans la photothèque">
+        <!-- Photothèque masquée (peu utilisée) : retirer « hidden » pour la remettre. -->
+        <button id="libraryBtn" class="btn btn-square hidden" type="button" aria-label="Choisir dans la photothèque" title="Choisir dans la photothèque">
           <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
         </button>
       </div>
@@ -1208,6 +1209,7 @@
     $("setup").classList.remove("hidden");
     $("status").classList.add("hidden");
     $("settingsBtn").classList.add("hidden");
+    $("setupTitle").classList.remove("hidden");
     document.body.classList.remove("has-bar");
     const canOAuth = !!CFG.DROPBOX_APP_KEY && location.protocol === "https:";
     $("oauthBlock").classList.toggle("hidden", !canOAuth);
@@ -1253,6 +1255,7 @@
     $("main").classList.remove("hidden");
     $("status").classList.remove("hidden");
     $("settingsBtn").classList.remove("hidden");
+    $("setupTitle").classList.add("hidden");
     document.body.classList.add("has-bar");
     validateDossier(false);
     render();
