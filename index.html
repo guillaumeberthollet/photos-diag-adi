@@ -278,6 +278,9 @@
       <button id="settingsBtn" class="icon-btn hidden" type="button" aria-label="Réglages Dropbox">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
       </button>
+      <button id="backBtn" class="icon-btn hidden" type="button" aria-label="Retour">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      </button>
     </div>
   </div>
 </header>
@@ -292,7 +295,6 @@
     <p class="muted"><b>Téléphone perdu ou volé ?</b> Depuis un ordinateur, sur dropbox.com : <b>Paramètres › Applications connectées › Photos Diag ADI › Déconnecter</b>. Le téléphone ne pourra plus rien envoyer.</p>
     <div class="setup-actions">
       <button id="logoutBtn" class="btn btn-danger" type="button">Se déconnecter</button>
-      <button id="accountBack" class="btn" type="button">Retour</button>
     </div>
   </div>
 
@@ -1230,7 +1232,8 @@
     $("configCard").classList.toggle("lift", !connected);
     $("configTitle").textContent = connected ? "Changer de compte" : "Configuration";
     $("configIntro").textContent = connected ? "Pour connecter ce téléphone à un autre compte Dropbox." : "À faire une seule fois sur ce téléphone.";
-    $("setupCancel").classList.toggle("hidden", !fromSettings || connected);
+    $("setupCancel").classList.toggle("hidden", true); // remplacé par la flèche du bandeau
+    $("backBtn").classList.toggle("hidden", !fromSettings);
     window.scrollTo(0, 0);
   }
 
@@ -1262,6 +1265,7 @@
     $("main").classList.remove("hidden");
     $("status").classList.remove("hidden");
     $("settingsBtn").classList.remove("hidden");
+    $("backBtn").classList.add("hidden");
     $("setupTitle").classList.add("hidden");
     document.body.classList.add("has-bar");
     validateDossier(false);
@@ -1363,7 +1367,7 @@
     };
     $("settingsBtn").onclick = () => showSetup(true);
     $("setupCancel").onclick = showMain;
-    $("accountBack").onclick = showMain;
+    $("backBtn").onclick = showMain;
     $("logoutBtn").onclick = logout;
     $("oauthBtn").onclick = startOAuth;
     $("tokenBtn").onclick = saveTokenFromInput;
