@@ -10,8 +10,8 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Photos Diag">
-<link rel="apple-touch-icon" href="icon-180.png">
-<link rel="icon" type="image/svg+xml" href="icon.svg">
+<link rel="apple-touch-icon" href="icon-180.png?v=2">
+<link rel="icon" type="image/svg+xml" href="icon.svg?v=2">
 <link rel="manifest" href="manifest.json">
 <style>
   /* Couleurs ADI : vert canard + orange. Toujours en clair : lisible en plein soleil. */
@@ -1134,7 +1134,7 @@
     burst.count = 0;
     burst.open = true;
     $("bDossier").textContent = "Dossier " + burst.dossier;
-    $("bCount").textContent = "Touchez le rond pour photographier";
+    $("bCount").textContent = "";
     $("bLast").removeAttribute("src");
     $("bError").classList.add("hidden");
     $("burst").classList.remove("hidden");
