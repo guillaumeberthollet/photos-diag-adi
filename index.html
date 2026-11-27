@@ -285,7 +285,7 @@
     <div class="setup-actions">
       <label class="option-row" for="rafaleToggle">
         <input type="checkbox" id="rafaleToggle">
-        <span><b>Bouton « Rafale » (essai)</b><br><span class="muted">Caméra intégrée à l'appli : une photo par appui, sans « Utiliser ». Pas de flash ni de 0,5× sur iPhone.</span></span>
+        <span><b>Bouton « Rafale »</b><br><span class="muted">Caméra intégrée à l'appli : une photo par appui, sans « Utiliser ». Pas de flash ni de 0,5× sur iPhone.</span></span>
       </label>
       <button id="logoutBtn" class="btn btn-danger" type="button">Se déconnecter</button>
       <button id="accountBack" class="btn" type="button">Retour</button>
@@ -1118,7 +1118,8 @@
   // Sur iPhone, une page web n'a accès ni au flash ni à l'ultra grand angle.
   const burst = { open: false, stream: null, dossier: "", count: 0, pushed: false, chain: Promise.resolve() };
 
-  function rafaleEnabled() { return lsGet("rafale") === "1"; }
+  // Activée par défaut ; désactivable dans les réglages (mémorisé sur le téléphone).
+  function rafaleEnabled() { return lsGet("rafale") !== "0"; }
   function applyRafale() {
     const on = rafaleEnabled();
     document.body.classList.toggle("rafale", on);
